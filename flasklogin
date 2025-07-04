@@ -1,0 +1,278 @@
+✅ 1. CÓDIGO PRINCIPAL (app.py)
+
+
+from flask import Flask, render_template, redirect, url_for, request
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+
+
+app = Flask(__name__)
+app.secret_key = 'segredo'  # Protege os cookies e sessões
+
+
+# 1. Configura o Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'  # Se não estiver logado, redireciona para 'login'
+
+
+# 2. Simula banco de dados (em formato JSON)
+usuarios = {
+    "usuario1": {
+        "id": "usuario1",
+        "senha": "1234"
+    }
+}
+
+
+# 3. Classe do usuário
+class Usuario(UserMixin):
+    def __init__(self, id):
+        self.id = id
+
+
+# 4. Como o Flask-Login carrega o usuário logado
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id in usuarios:
+        return Usuario(user_id)
+    return None
+
+
+# 5. Página de login
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        usuario = request.form['usuario']
+        senha = request.form['senha']
+
+
+        if usuario in usuarios and usuarios[usuario]['senha'] == senha:
+            user = Usuario(usuario)
+            login_user(user)  # Faz login
+            return redirect(url_for('welcome'))
+        else:
+            return "Usuário ou senha inválidos."
+    
+    return render_template('login.html')
+
+
+# 6. Página de boas-vindas (rota protegida)
+@app.route('/welcome')
+@login_required
+def welcome():
+    return render_template('welcome.html', nome=current_user.id)
+
+
+# 7. Logout
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()  # Encerra a sessão
+    return redirect(url_for('login'))
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+
+---
+
+
+🧾 2. HTML DE LOGIN (templates/login.html)
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+</head>
+<body>
+    <h2>Login</h2>
+    <form method="post">
+        <label>Usuário:</label>
+        <input type="text" name="usuario"><br><br>
+        <label>Senha:</label>
+        <input type="password" name="senha"><br><br>
+        <input type="submit" value="Entrar">
+    </form>
+</body>
+</html>
+
+
+
+
+---
+
+
+🧾 3. HTML DE BOAS-VINDAS (templates/welcome.html)
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bem-vindo</title>
+</head>
+<body>
+    <h2>Olá, {{ nome }}!</h2>
+    <p>Você está logado com sucesso.</p>
+    <a href="{{ url_for('logout') }}">Logout</a>
+</body>
+</html>
+
+
+
+
+---
+
+
+🧠 EXPLICAÇÃO DE CADA PARTE
+
+
+🔹 app = Flask(__name__)
+
+
+Cria o aplicativo Flask.
+
+
+
+
+---
+
+
+🔹 app.secret_key = 'segredo'
+
+
+Chave secreta obrigatória para o Flask guardar cookies e sessões de login.
+
+
+
+
+---
+
+
+🔹 LoginManager() e init_app()
+
+
+O LoginManager controla a sessão do usuário (login/logout).
+Com login_manager.init_app(app), ele é ligado ao app Flask.
+
+
+
+
+---
+
+
+🔹 login_manager.login_view = 'login'
+
+
+Se alguém tentar acessar uma página protegida e não estiver logado, o Flask redireciona para essa rota (/login).
+
+
+
+
+---
+
+
+🔹 usuarios = {...}
+
+
+Simula uma base de usuários com ID e senha. Pode ser trocado por JSON ou banco depois.
+
+
+
+
+---
+
+
+🔹 class Usuario(UserMixin)
+
+
+Cria a classe do usuário.
+O UserMixin fornece as funções prontas que o Flask-Login precisa (is_authenticated, get_id()...).
+
+
+
+
+---
+
+
+🔹 @login_manager.user_loader
+
+
+Quando o usuário já está logado, o Flask-Login precisa carregar ele de volta.
+Essa função encontra o usuário a partir do ID salvo na sessão.
+
+
+
+
+---
+
+
+🔹 /login (GET e POST)
+
+
+GET: mostra o formulário HTML.
+
+
+POST: pega os dados do formulário, verifica se estão certos.
+
+
+Se estiverem certos: faz login (login_user()) e redireciona para /welcome.
+
+
+Se estiverem errados: mostra erro.
+
+
+
+
+
+
+
+
+---
+
+
+🔹 /welcome com @login_required
+
+
+Essa rota só pode ser acessada por usuários logados.
+Se tentar acessar direto, é redirecionado para /login.
+
+
+Mostra o nome do usuário com current_user.id.
+
+
+
+
+---
+
+
+🔹 /logout
+
+
+Remove o usuário da sessão com logout_user().
+
+
+Redireciona de volta para o login.
+
+
+
+
+
+
+---
+
+
+🟨 Como rodar
+
+
+1. Salve o código app.py
+
+
+
+
+2. Crie a pasta templates/ e coloque os dois arquivos .html dentro dela.
+
+
