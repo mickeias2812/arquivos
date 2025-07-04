@@ -1,0 +1,131 @@
+app.py
+
+
+
+
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+
+app = Flask(__name__)
+app.secret_key = 'chave_secreta'
+
+login = LoginManager()
+login.init_app(app)
+login.login_view = 'entrar'
+
+USUARIO_FIXO = {
+    "nome": "admin",
+    "senha": "1234"
+}
+
+class Usuario(UserMixin):
+    def __init__(self, nome):
+        self.id = nome
+
+@login.user_loader
+def carregar_usuario(nome):
+    if nome == USUARIO_FIXO['nome']:
+        return Usuario(nome)
+    return None
+
+@app.route('/entrar', methods=['GET', 'POST'])
+def entrar():
+    if request.method == 'POST':
+        nome = request.form['nome']
+        senha = request.form['senha']
+
+        if nome == USUARIO_FIXO['nome'] and senha == USUARIO_FIXO['senha']:
+            usuario = Usuario(nome)
+            login_user(usuario)
+            flash('Login feito com sucesso!')
+            return redirect(url_for('painel'))
+        else:
+            flash('Nome ou senha incorretos.')
+
+    return render_template('entrar.html')
+
+@app.route('/painel')
+@login_required
+def painel():
+    return render_template('painel.html', nome=current_user.id)
+
+@app.route('/sair')
+@login_required
+def sair():
+    logout_user()
+    flash('Você saiu com sucesso.')
+    return redirect(url_for('entrar'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+
+
+
+
+
+
+base.html
+
+
+
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block titulo %}{% endblock %}</title>
+</head>
+<body>
+    {% with mensagens = get_flashed_messages() %}
+        {% if mensagens %}
+            <p><strong>{{ mensagens[0] }}</strong></p>
+        {% endif %}
+    {% endwith %}
+
+    {% block conteudo %}{% endblock %}
+</body>
+</html>
+
+
+
+
+
+
+entrar.html
+
+
+{% extends 'base.html' %}
+{% block titulo %}Entrar{% endblock %}
+
+{% block conteudo %}
+    <h1>Entrar</h1>
+    <form method="post">
+        <p>Nome: <input type="text" name="nome" required></p>
+        <p>Senha: <input type="password" name="senha" required></p>
+        <p><button type="submit">Entrar</button></p>
+    </form>
+{% endblock %}
+
+
+
+
+
+
+painel.html
+
+
+
+
+
+
+{% extends 'base.html' %}
+{% block titulo %}Painel{% endblock %}
+
+{% block conteudo %}
+    <h1>Olá, {{ nome }}!</h1>
+    <p>Bem-vindo ao painel.</p>
+    <p><a href="{{ url_for('sair') }}">Sair</a></p>
+{% endblock %}
