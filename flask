@@ -1,0 +1,89 @@
+app.py 
+
+from flask import Flask, request, url_for, redirect
+from flask import render_template, flash
+
+
+import sqlite3
+
+
+def obter_conexao():
+    conn = sqlite3.connect('banco.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+app = Flask(__name__)
+app.secret_key = "chave_secreta"
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+
+    if request.method == "POST":
+        nome = request.form['nome'].strip()
+        email = request.form['email']
+        if not nome:
+            flash("Não pode colocar palavras vazias ou com espaços")
+            return redirect(url_for('index'))
+
+        conn = obter_conexao()
+
+        SQL = "INSERT INTO users(nome, email) VALUES (?,?)"
+        conn.execute(SQL, (nome, email))
+        conn.commit()
+        conn.close()
+        
+        return redirect(url_for('index'))
+    
+    if request.method == "GET":
+        conn = obter_conexao()
+        SQL = "SELECT * FROM users"
+        lista = conn.execute(SQL).fetchall()
+        conn.close()
+    
+    return render_template('index.html', lista=lista)
+
+@app.route('/excluir/<int:id>')
+def excluir(id):
+    conn = obter_conexao()
+
+    SQL = "DELETE FROM users WHERE id = ?"
+    conn.execute(SQL, (id,))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('index'))
+
+@app.route('/editar/<int:id>', methods=['GET', 'POST'])
+def editar(id):
+
+    if request.method == "POST":
+        
+        novo_nome = request.form['nome']
+        novo_email = request.form['email']
+        SQL = "UPDATE users SET nome = ?, email = ? WHERE id = ?"
+        conn = obter_conexao()
+        conn.execute(SQL, (novo_nome,novo_email, id) )
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for('index'))
+    
+    if request.method == "GET":
+        SQL = "SELECT * FROM users WHERE id = ?"
+        conn = obter_conexao()
+        usuario = conn.execute(SQL, (id,)).fetchone()
+        conn.close()
+
+    return render_template('editar.html', usuario=usuario)
+
+@app.route('/usuarios', methods=['GET', 'POST'])
+def usuarios():
+        
+        coon = obter_conexao()
+        SQL = "SELECT * FROM users"
+        usuarios = coon.execute(SQL).fetchall()
+        coon.close()
+        return render_template(url_for('usuarios.html', usuarios=usuarios))
+
+
+
