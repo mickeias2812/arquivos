@@ -1,0 +1,139 @@
+PARTE 1 – Código explicado
+1️⃣ database/init.py
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, DeclarativeBase
+
+engine = create_engine('mysql://root:@localhost/bancao')
+session = Session(bind=engine)
+
+class Base(DeclarativeBase):
+    pass
+
+
+Conecta o Python ao MySQL (bancao) usando SQLAlchemy.
+
+Cria a session para interagir com o banco.
+
+Base será a classe base para todos os modelos.
+
+2️⃣ models/init.py
+from database import Base
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, Float, ForeignKey
+
+class User(Base):
+    __tablename__ = "users"
+    id:Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    nome:Mapped[str] = mapped_column(String(30))
+    email:Mapped[str] = mapped_column(String(100), unique=True)
+    produtos = relationship('Product', backref='user')
+
+class Product(Base):
+    __tablename__ = "products"
+    id:Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    nome:Mapped[str] = mapped_column(String(30))
+    valor:Mapped[float] = mapped_column(Float)
+    user_id:Mapped[int] = mapped_column(ForeignKey('users.id'))
+
+
+User → representa os usuários.
+
+Product → representa produtos com user_id apontando para o dono.
+
+Relacionamento 1:N: um User pode ter vários Product.
+
+backref='user' permite acessar o dono a partir do produto (prod.user).
+
+3️⃣ app.py
+Base.metadata.create_all(bind=engine)  # cria as tabelas no banco
+
+# consulta produtos de um usuário
+session.begin()
+user = session.query(User).where(User.id == 1).first()
+for prod in user.produtos:
+    print(prod.user.nome)  # nome do dono
+    print(prod.nome)       # nome do produto
+session.close()
+
+
+Cria as tabelas no banco (users e products).
+
+Busca usuário com id = 1 e imprime todos os produtos dele.
+
+Demonstra como navegar no relacionamento entre tabelas.
+
+✅ Resumo do código
+
+Banco: MySQL (bancao)
+
+Tabelas: users, products
+
+Relacionamento: 1 usuário → muitos produtos (1:N)
+
+User.produtos → lista de produtos do usuário
+
+Product.user → dono do produto
+
+PARTE 2 – Conexão VS Code → MySQL Workbench (mickeias)
+1️⃣ Garantir que o banco existe
+
+No terminal:
+
+mysql -u root -p
+
+
+(se senha estiver vazia, pressione Enter)
+
+CREATE DATABASE IF NOT EXISTS bancao;
+SHOW DATABASES;
+
+2️⃣ Configurar MySQL Workbench
+
+Abra o Workbench.
+
+Vá em + ou edite a conexão mickeias.
+
+Configure:
+
+Connection Name: mickeias
+
+Hostname: localhost ou 127.0.0.1
+
+Username: root
+
+Password: vazio (ou sua senha do MySQL)
+
+Teste a conexão e salve.
+
+3️⃣ Criar tabelas via Python
+
+No VS Code, rode o app.py:
+
+python app.py
+
+
+Isso cria as tabelas users e products no banco bancao.
+
+Adiciona usuários e produtos se você descomentar os blocos de session.add(...).
+
+4️⃣ Visualizar no Workbench
+
+Abra o esquema bancao → Tables.
+
+Você verá users e products.
+
+Pode rodar queries:
+
+SELECT * FROM users;
+SELECT * FROM products;
+
+
+💡 Resumo rápido do fluxo
+
+Banco bancao existe → se não, crie no MySQL.
+
+Conexão Workbench mickeias aponta para localhost/root.
+
+VS Code (app.py) cria tabelas e popula dados.
+
+Workbench mostra visualmente usuários e produtos.
